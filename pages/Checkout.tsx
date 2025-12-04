@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { UserDetails } from '../types';
-import { CheckCircle, CreditCard, Lock } from 'lucide-react';
+import { CheckCircle, Lock, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Checkout: React.FC = () => {
-  const { cartTotal, clearCart } = useCart();
+  const { cart, cartTotal, clearCart } = useCart();
   const [formData, setFormData] = useState<UserDetails>({
     firstName: '',
     lastName: '',
@@ -16,6 +16,7 @@ const Checkout: React.FC = () => {
     country: 'United States'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = (cartTotal * 1.08).toFixed(2);
 
@@ -24,11 +25,54 @@ const Checkout: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    clearCart();
-    // Simulate API call
+
+    // Open the payment link in a new tab immediately to prevent popup blockers.
+    // TODO: Replace 'https://www.paypal.com/' with your actual payment link.
+    window.open('https://www.paypal.com/', '_blank');
+
+    setIsSubmitting(true);
+
+    // Flatten products into a single string
+    const productSummary = cart
+      .map(item => `${item.name} (Size: ${item.selectedSize}) x${item.quantity}`)
+      .join(', ');
+
+    // Construct the data payload with the specific keys requested
+    const orderData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      streetAddress: formData.address, // Mapped from address
+      city: formData.city,
+      zipCode: formData.zip,           // Mapped from zip
+      productName: productSummary,     // Mapped from cart
+      totalAmount: total
+    };
+
+    try {
+      // Using 'no-cors' mode ensures the request isn't blocked by the browser.
+      // Content-Type is set to 'text/plain' to prevent a CORS preflight (OPTIONS) request,
+      // ensuring the JSON payload reaches the script successfully.
+      await fetch('https://script.google.com/macros/s/AKfycbzygMiit0bs9bB4j9swY9nFJJmugGi95uJW2lr1REyaco-z-wnC2p7nzIY_98K1ZSOi/exec', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      console.log('Order submitted successfully:', orderData);
+      clearCart();
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting order:", error);
+      alert("There was an error placing your order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -41,6 +85,8 @@ const Checkout: React.FC = () => {
           <h2 className="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h2>
           <p className="text-gray-500 mb-8">
             Thank you for your purchase, {formData.firstName}. We've sent a confirmation email to {formData.email}.
+            <br /><br />
+            Please complete your payment in the new tab if you haven't already.
           </p>
           <Link
             to="/"
@@ -71,9 +117,11 @@ const Checkout: React.FC = () => {
                       type="text"
                       name="firstName"
                       required
+                      placeholder="John"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -82,9 +130,11 @@ const Checkout: React.FC = () => {
                       type="text"
                       name="lastName"
                       required
+                      placeholder="Doe"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -93,9 +143,11 @@ const Checkout: React.FC = () => {
                       type="email"
                       name="email"
                       required
+                      placeholder="john@example.com"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -104,9 +156,11 @@ const Checkout: React.FC = () => {
                       type="text"
                       name="address"
                       required
+                      placeholder="123 Main St"
                       value={formData.address}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -115,9 +169,11 @@ const Checkout: React.FC = () => {
                       type="text"
                       name="city"
                       required
+                      placeholder="New York"
                       value={formData.city}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -126,52 +182,51 @@ const Checkout: React.FC = () => {
                       type="text"
                       name="zip"
                       required
+                      placeholder="10001"
                       value={formData.zip}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition"
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Payment Info Mock */}
+              {/* Payment Info Mock - PayPal */}
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                  <h2 className="text-xl font-bold text-gray-900 mb-6">Payment Details</h2>
                  <div className="space-y-4">
-                   <div className="flex items-center p-4 border rounded-lg border-brand-200 bg-brand-50 cursor-pointer">
-                      <input type="radio" checked readOnly className="h-5 w-5 text-brand-600" />
+                   <div className="flex items-center p-4 border rounded-lg border-blue-200 bg-blue-50 cursor-pointer transition-colors hover:bg-blue-100">
+                      <input type="radio" checked readOnly className="h-5 w-5 text-blue-600 focus:ring-blue-500" />
                       <div className="ml-3 flex items-center w-full justify-between">
-                         <span className="font-medium text-brand-900">Credit Card</span>
-                         <div className="flex space-x-2 text-brand-700">
-                           <CreditCard size={20} />
-                         </div>
+                         <span className="font-bold text-[#003087] flex items-center text-lg italic">
+                           PayPal
+                         </span>
+                         <span className="text-xs font-semibold px-2 py-1 bg-white text-blue-700 rounded border border-blue-100">
+                           Fast & Secure
+                         </span>
                       </div>
                    </div>
+                   
                    <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-500 flex items-center">
-                     <Lock size={16} className="mr-2" /> All transactions are secure and encrypted.
-                   </div>
-                   {/* External Link */}
-                   <div className="pt-4">
-                     <p className="mb-4 text-sm text-gray-600">
-                       For security, you will be redirected to PayPal to complete your purchase.
-                     </p>
-                     <a 
-                       href={`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=demo@walkin.com&currency_code=USD&amount=${total}`}
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       className="block w-full text-center bg-[#0070ba] text-white font-bold py-3 rounded-lg hover:bg-[#003087] transition"
-                     >
-                       Pay with PayPal
-                     </a>
+                     <Lock size={16} className="mr-2 flex-shrink-0" />
+                     <span>You will be redirected to PayPal to complete your purchase securely.</span>
                    </div>
                  </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-4 px-8 bg-black text-white text-lg font-bold rounded-full hover:bg-gray-800 transition transform hover:scale-[1.01] shadow-xl"
+                disabled={isSubmitting}
+                className="w-full py-4 px-8 bg-[#0070ba] hover:bg-[#003087] text-white text-lg font-bold rounded-full transition transform hover:scale-[1.01] shadow-xl disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Complete Order - ${total}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" /> Processing...
+                  </>
+                ) : (
+                  `Pay with PayPal - $${total}`
+                )}
               </button>
             </form>
           </div>
@@ -196,6 +251,36 @@ const Checkout: React.FC = () => {
                   <span>Total</span>
                   <span>${total}</span>
                 </div>
+                
+                {/* Mini Cart Display */}
+                <div className="mt-6 border-t border-gray-100 pt-6">
+                  <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wide">Items in Cart</h3>
+                  <ul className="space-y-4 max-h-60 overflow-y-auto no-scrollbar">
+                    {cart.map((item, idx) => (
+                      <li key={`${item.id}-${idx}`} className="flex items-center space-x-4">
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-full w-full object-cover object-center"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {item.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Size: {item.selectedSize} | Qty: {item.quantity}
+                          </p>
+                        </div>
+                        <div className="text-sm font-medium text-gray-900">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
              </div>
           </div>
         </div>

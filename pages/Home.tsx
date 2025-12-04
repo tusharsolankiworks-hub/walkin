@@ -116,8 +116,8 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
              <div className="order-2 md:order-1">
                <img
-                 src="https://picsum.photos/id/349/800/600"
-                 alt="Lifestyle"
+                 src="https://images.unsplash.com/photo-1516478177764-9fe5bd7e9717?auto=format&fit=crop&q=80&w=1000"
+                 alt="Lifestyle Sneakers"
                  className="rounded-2xl shadow-2xl"
                />
              </div>
