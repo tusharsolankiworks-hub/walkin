@@ -1,5 +1,5 @@
 {
-  "name": "walkin-sneakers",
+  "name": "walkinn",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.1",
+    "react": "18.2.0",
     "react-dom": "^19.2.1",
-    "react-router-dom": "^7.10.0",
-    "lucide-react": "^0.555.0"
+    "react-router-dom": "6.22.3",
+    "lucide-react": "0.344.0",
+    "@supabase/supabase-js": "2.39.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

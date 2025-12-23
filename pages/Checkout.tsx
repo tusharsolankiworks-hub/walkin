@@ -3,6 +3,7 @@ import { useCart } from '../context/CartContext';
 import { UserDetails } from '../types';
 import { CheckCircle, Lock, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 const Checkout: React.FC = () => {
   const { cart, cartTotal, clearCart } = useCart();
@@ -27,49 +28,42 @@ const Checkout: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Open the payment link in a new tab immediately to prevent popup blockers.
-    // TODO: Replace 'https://www.paypal.com/' with your actual payment link.
-    window.open('https://www.paypal.com/', '_blank');
-
     setIsSubmitting(true);
 
-    // Flatten products into a single string
-    const productSummary = cart
-      .map(item => `${item.name} (Size: ${item.selectedSize}) x${item.quantity}`)
-      .join(', ');
-
-    // Construct the data payload with the specific keys requested
-    const orderData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      streetAddress: formData.address, // Mapped from address
-      city: formData.city,
-      zipCode: formData.zip,           // Mapped from zip
-      productName: productSummary,     // Mapped from cart
-      totalAmount: total
-    };
-
     try {
-      // Using 'no-cors' mode ensures the request isn't blocked by the browser.
-      // Content-Type is set to 'text/plain' to prevent a CORS preflight (OPTIONS) request,
-      // ensuring the JSON payload reaches the script successfully.
-      await fetch('https://script.google.com/macros/s/AKfycbzygMiit0bs9bB4j9swY9nFJJmugGi95uJW2lr1REyaco-z-wnC2p7nzIY_98K1ZSOi/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify(orderData)
-      });
+      // Prepare the product summary string
+      const productSummary = cart
+        .map(item => `${item.name} (Size: ${item.selectedSize}) x${item.quantity}`)
+        .join(', ');
 
-      console.log('Order submitted successfully:', orderData);
+      // Insert data into Supabase
+      const { error } = await supabase.from('orders').insert([
+        {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          street_address: formData.address,
+          city: formData.city,
+          zip_code: formData.zip,
+          product_name: productSummary,
+          total_amount: parseFloat(total),
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Open the payment link in a new tab
+      // TODO: Replace 'https://www.paypal.com/' with your actual payment link.
+      window.open('https://www.paypal.com/', '_blank');
+
+      console.log('Order processed successfully to Supabase');
       clearCart();
       setIsSubmitted(true);
     } catch (error) {
-      console.error("Error submitting order:", error);
-      alert("There was an error placing your order. Please try again.");
+      console.error('Error processing order:', error);
+      alert('There was an error placing your order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +78,7 @@ const Checkout: React.FC = () => {
           </div>
           <h2 className="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h2>
           <p className="text-gray-500 mb-8">
-            Thank you for your purchase, {formData.firstName}. We've sent a confirmation email to {formData.email}.
+            Thank you for your purchase, {formData.firstName}. We've saved your order details and sent a confirmation email to {formData.email}.
             <br /><br />
             Please complete your payment in the new tab if you haven't already.
           </p>
